@@ -6,7 +6,6 @@ import { useToast } from '@/hooks/use-toast';
 interface CritiqueResult {
   brand: string;
   overall_score: number;
-  media_type: 'image' | 'video';
   brand_alignment: {
     score: number;
     feedback: string;
@@ -23,14 +22,6 @@ interface CritiqueResult {
     score: number;
     feedback: string;
   };
-  audio_quality?: {
-    score: number;
-    feedback: string;
-    voice_analysis: string;
-    music_analysis: string;
-    sound_effects: string;
-    sync_quality: string;
-  };
   strengths: string[];
   issues: string[];
   suggestions: string[];
@@ -39,13 +30,11 @@ interface CritiqueResult {
 const Index = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [result, setResult] = useState<CritiqueResult | null>(null);
-  const [mediaUrl, setMediaUrl] = useState<string>('');
-  const [mediaType, setMediaType] = useState<'image' | 'video' | null>(null);
+  const [imageUrl, setImageUrl] = useState<string>('');
   const { toast } = useToast();
 
-const handleAnalyze = async (file: File, brand: string, fileMediaType: 'image' | 'video') => {
+const handleAnalyze = async (file: File, brand: string) => {
   setIsLoading(true);
-  setMediaType(fileMediaType);
 
   try {
     const formData = new FormData();
@@ -92,11 +81,11 @@ const handleAnalyze = async (file: File, brand: string, fileMediaType: 'image' |
     setResult(data as CritiqueResult);
     
     const url = URL.createObjectURL(file);
-    setMediaUrl(url);
+    setImageUrl(url);
 
     toast({
       title: 'Analysis Complete!',
-      description: `Your ${fileMediaType} ad has been analyzed successfully`,
+      description: 'Your ad has been analyzed successfully',
     });
   } catch (error) {
     console.error('Server response error:', error);
@@ -112,10 +101,9 @@ const handleAnalyze = async (file: File, brand: string, fileMediaType: 'image' |
 
   const handleReset = () => {
     setResult(null);
-    setMediaUrl('');
-    setMediaType(null);
-    if (mediaUrl) {
-      URL.revokeObjectURL(mediaUrl);
+    setImageUrl('');
+    if (imageUrl) {
+      URL.revokeObjectURL(imageUrl);
     }
   };
 
@@ -132,9 +120,9 @@ const handleAnalyze = async (file: File, brand: string, fileMediaType: 'image' |
         </header>
 
         {!result ? (
-          <UploadSection onAnalyze={handleAnalyze} isLoading={isLoading} mediaType={mediaType} />
+          <UploadSection onAnalyze={handleAnalyze} isLoading={isLoading} />
         ) : (
-          <ResultsDashboard result={result} mediaUrl={mediaUrl} onReset={handleReset} />
+          <ResultsDashboard result={result} imageUrl={imageUrl} onReset={handleReset} />
         )}
       </div>
     </div>
