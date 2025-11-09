@@ -1,14 +1,16 @@
 import { useState } from 'react';
-import { Download, RotateCcw, Copy, Check, Shield, Eye, MessageSquare, CheckCircle, ChevronDown, ChevronUp } from 'lucide-react';
+import { Download, RotateCcw, Copy, Check, Shield, Eye, MessageSquare, CheckCircle, ChevronDown, ChevronUp, Volume2, Badge } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { CircularProgress } from './CircularProgress';
 import { ScoreCard } from './ScoreCard';
+import { AudioQualityCard } from './AudioQualityCard';
 import { useToast } from '@/hooks/use-toast';
 
 interface CritiqueResult {
   brand: string;
   overall_score: number;
+  media_type: 'image' | 'video';
   brand_alignment: {
     score: number;
     feedback: string;
@@ -25,6 +27,14 @@ interface CritiqueResult {
     score: number;
     feedback: string;
   };
+  audio_quality?: {
+    score: number;
+    feedback: string;
+    voice_analysis: string;
+    music_analysis: string;
+    sound_effects: string;
+    sync_quality: string;
+  };
   strengths: string[];
   issues: string[];
   suggestions: string[];
@@ -32,14 +42,16 @@ interface CritiqueResult {
 
 interface ResultsDashboardProps {
   result: CritiqueResult;
-  imageUrl: string;
+  mediaUrl: string;
   onReset: () => void;
 }
 
-export const ResultsDashboard = ({ result, imageUrl, onReset }: ResultsDashboardProps) => {
+export const ResultsDashboard = ({ result, mediaUrl, onReset }: ResultsDashboardProps) => {
   const [copied, setCopied] = useState(false);
   const [showJson, setShowJson] = useState(false);
   const { toast } = useToast();
+  
+  const isVideo = result.media_type === 'video';
 
   const handleCopy = () => {
     navigator.clipboard.writeText(JSON.stringify(result, null, 2));
@@ -64,16 +76,48 @@ export const ResultsDashboard = ({ result, imageUrl, onReset }: ResultsDashboard
         {/* Left Column - Visual */}
         <div className="space-y-4">
           <div className="bg-card rounded-2xl shadow-card-custom p-6">
-            <h3 className="text-xl font-bold text-foreground mb-4 capitalize">
-              {result.brand} Ad
-            </h3>
-            <div className="rounded-xl overflow-hidden border border-border">
-              <img
-                src={imageUrl}
-                alt="Analyzed ad"
-                className="w-full h-auto object-contain bg-muted"
-              />
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-xl font-bold text-foreground capitalize">
+                {result.brand} Ad
+              </h3>
+              <div className="flex items-center gap-2 px-3 py-1 rounded-full bg-primary/10 border border-primary/20">
+                {isVideo ? (
+                  <>
+                    <Volume2 className="w-4 h-4 text-primary" />
+                    <span className="text-sm font-medium text-primary">Video Ad</span>
+                  </>
+                ) : (
+                  <>
+                    <Eye className="w-4 h-4 text-primary" />
+                    <span className="text-sm font-medium text-primary">Image Ad</span>
+                  </>
+                )}
+              </div>
             </div>
+            <div className="rounded-xl overflow-hidden border border-border">
+              {isVideo ? (
+                <video
+                  src={mediaUrl}
+                  controls
+                  autoPlay
+                  muted
+                  loop
+                  className="w-full h-auto object-contain bg-muted"
+                />
+              ) : (
+                <img
+                  src={mediaUrl}
+                  alt="Analyzed ad"
+                  className="w-full h-auto object-contain bg-muted"
+                />
+              )}
+            </div>
+            {isVideo && (
+              <p className="mt-4 text-sm text-muted-foreground flex items-center gap-2">
+                <span className="text-lg">✨</span>
+                Includes audio analysis
+              </p>
+            )}
           </div>
         </div>
 
@@ -85,7 +129,7 @@ export const ResultsDashboard = ({ result, imageUrl, onReset }: ResultsDashboard
           </div>
 
           {/* Score Cards */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div className={`grid grid-cols-1 sm:grid-cols-2 gap-4`}>
             <ScoreCard
               title="Brand Alignment"
               score={result.brand_alignment.score}
@@ -104,6 +148,9 @@ export const ResultsDashboard = ({ result, imageUrl, onReset }: ResultsDashboard
               feedback={result.message_clarity.feedback}
               icon={MessageSquare}
             />
+            {isVideo && result.audio_quality && (
+              <AudioQualityCard audioQuality={result.audio_quality} />
+            )}
             <ScoreCard
               title="Safety & Ethics"
               score={result.safety_ethics.score}

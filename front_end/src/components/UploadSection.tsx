@@ -1,12 +1,13 @@
 import { useState } from 'react';
-import { Upload, Loader2 } from 'lucide-react';
+import { Upload, Loader2, Video } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
 
 interface UploadSectionProps {
-  onAnalyze: (file: File, brand: string) => void;
+  onAnalyze: (file: File, brand: string, mediaType: 'image' | 'video') => void;
   isLoading: boolean;
+  mediaType: 'image' | 'video' | null;
 }
 
 const BRANDS = [
@@ -15,26 +16,46 @@ const BRANDS = [
   { value: 'coca-cola', label: 'Coca-Cola' },
 ];
 
-export const UploadSection = ({ onAnalyze, isLoading }: UploadSectionProps) => {
+export const UploadSection = ({ onAnalyze, isLoading, mediaType }: UploadSectionProps) => {
   const [selectedBrand, setSelectedBrand] = useState<string>('');
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [preview, setPreview] = useState<string>('');
+  const [fileType, setFileType] = useState<'image' | 'video' | null>(null);
+  const [fileSize, setFileSize] = useState<number>(0);
   const [isDragging, setIsDragging] = useState(false);
   const { toast } = useToast();
 
   const handleFileChange = (file: File | null) => {
     if (!file) return;
 
-    if (!file.type.startsWith('image/')) {
+    // Check file size (50MB max)
+    const maxSize = 50 * 1024 * 1024; // 50MB in bytes
+    if (file.size > maxSize) {
+      toast({
+        title: 'File too large',
+        description: 'File size must be under 50MB',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    // Check file type
+    const isImage = file.type.startsWith('image/');
+    const isVideo = file.type.startsWith('video/');
+    
+    if (!isImage && !isVideo) {
       toast({
         title: 'Invalid file type',
-        description: 'Please upload an image file (jpg, png)',
+        description: 'Please upload JPG, PNG, MP4, MOV, or WebM',
         variant: 'destructive',
       });
       return;
     }
 
     setSelectedFile(file);
+    setFileType(isImage ? 'image' : 'video');
+    setFileSize(file.size);
+    
     const reader = new FileReader();
     reader.onloadend = () => {
       setPreview(reader.result as string);
@@ -59,15 +80,23 @@ export const UploadSection = ({ onAnalyze, isLoading }: UploadSectionProps) => {
   };
 
   const handleSubmit = () => {
-    if (!selectedFile || !selectedBrand) {
+    if (!selectedFile || !selectedBrand || !fileType) {
       toast({
         title: 'Missing information',
-        description: 'Please select a brand and upload an image',
+        description: 'Please select a brand and upload a file',
         variant: 'destructive',
       });
       return;
     }
-    onAnalyze(selectedFile, selectedBrand);
+    onAnalyze(selectedFile, selectedBrand, fileType);
+  };
+
+  const formatFileSize = (bytes: number) => {
+    if (bytes === 0) return '0 Bytes';
+    const k = 1024;
+    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return Math.round(bytes / Math.pow(k, i) * 100) / 100 + ' ' + sizes[i];
   };
 
   return (
@@ -90,7 +119,7 @@ export const UploadSection = ({ onAnalyze, isLoading }: UploadSectionProps) => {
         </div>
 
         <div className="space-y-2">
-          <label className="text-sm font-medium text-foreground">Upload Ad Image</label>
+          <label className="text-sm font-medium text-foreground">Upload Ad Media</label>
           <div
             onDrop={handleDrop}
             onDragOver={handleDragOver}
@@ -103,7 +132,7 @@ export const UploadSection = ({ onAnalyze, isLoading }: UploadSectionProps) => {
           >
             <Upload className="w-12 h-12 mx-auto mb-4 text-muted-foreground" />
             <p className="text-foreground font-medium mb-2">
-              Drag and drop your ad image here
+              Drag and drop your ad image or video here
             </p>
             <p className="text-sm text-muted-foreground mb-4">or</p>
             <label className="cursor-pointer">
@@ -112,7 +141,7 @@ export const UploadSection = ({ onAnalyze, isLoading }: UploadSectionProps) => {
                   Browse Files
                   <input
                     type="file"
-                    accept="image/*"
+                    accept="image/*,video/*"
                     className="hidden"
                     onChange={(e) => handleFileChange(e.target.files?.[0] || null)}
                   />
@@ -120,20 +149,36 @@ export const UploadSection = ({ onAnalyze, isLoading }: UploadSectionProps) => {
               </Button>
             </label>
             <p className="text-xs text-muted-foreground mt-4">
-              Supports: JPG, PNG (Max 10MB)
+              Supports: JPG, PNG, MP4, MOV, WebM (Max 50MB)
             </p>
           </div>
         </div>
 
         {preview && (
           <div className="space-y-2 animate-fade-in">
-            <label className="text-sm font-medium text-foreground">Preview</label>
+            <div className="flex items-center justify-between">
+              <label className="text-sm font-medium text-foreground">Preview</label>
+              <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                {fileType === 'video' && <Video className="w-4 h-4" />}
+                <span className="capitalize">{fileType}</span>
+                <span>•</span>
+                <span>{formatFileSize(fileSize)}</span>
+              </div>
+            </div>
             <div className="relative rounded-xl overflow-hidden border border-border">
-              <img
-                src={preview}
-                alt="Preview"
-                className="w-full h-auto max-h-96 object-contain bg-muted"
-              />
+              {fileType === 'image' ? (
+                <img
+                  src={preview}
+                  alt="Preview"
+                  className="w-full h-auto max-h-96 object-contain bg-muted"
+                />
+              ) : (
+                <video
+                  src={preview}
+                  controls
+                  className="w-full h-auto max-h-96 object-contain bg-muted"
+                />
+              )}
             </div>
           </div>
         )}
@@ -146,7 +191,9 @@ export const UploadSection = ({ onAnalyze, isLoading }: UploadSectionProps) => {
           {isLoading ? (
             <>
               <Loader2 className="w-5 h-5 mr-2 animate-spin" />
-              Analyzing your ad with AI...
+              {fileType === 'video' 
+                ? 'Analyzing video with AI... This may take up to 30 seconds'
+                : 'Analyzing image with AI...'}
             </>
           ) : (
             <>
