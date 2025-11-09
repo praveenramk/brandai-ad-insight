@@ -9,17 +9,21 @@ import { useToast } from '@/hooks/use-toast';
 interface CritiqueResult {
   brand: string;
   overall_score: number;
-  scores: {
-    brand_alignment: number;
-    visual_quality: number;
-    message_clarity: number;
-    safety_ethics: number;
+  brand_alignment: {
+    score: number;
+    feedback: string;
   };
-  feedback: {
-    brand_alignment: string;
-    visual_quality: string;
-    message_clarity: string;
-    safety_ethics: string;
+  visual_quality: {
+    score: number;
+    feedback: string;
+  };
+  message_clarity: {
+    score: number;
+    feedback: string;
+  };
+  safety_ethics: {
+    score: number;
+    feedback: string;
   };
   strengths: string[];
   issues: string[];
@@ -84,26 +88,26 @@ export const ResultsDashboard = ({ result, imageUrl, onReset }: ResultsDashboard
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <ScoreCard
               title="Brand Alignment"
-              score={result.scores.brand_alignment}
-              feedback={result.feedback.brand_alignment}
+              score={result.brand_alignment.score}
+              feedback={result.brand_alignment.feedback}
               icon={CheckCircle}
             />
             <ScoreCard
               title="Visual Quality"
-              score={result.scores.visual_quality}
-              feedback={result.feedback.visual_quality}
+              score={result.visual_quality.score}
+              feedback={result.visual_quality.feedback}
               icon={Eye}
             />
             <ScoreCard
               title="Message Clarity"
-              score={result.scores.message_clarity}
-              feedback={result.feedback.message_clarity}
+              score={result.message_clarity.score}
+              feedback={result.message_clarity.feedback}
               icon={MessageSquare}
             />
             <ScoreCard
               title="Safety & Ethics"
-              score={result.scores.safety_ethics}
-              feedback={result.feedback.safety_ethics}
+              score={result.safety_ethics.score}
+              feedback={result.safety_ethics.feedback}
               icon={Shield}
             />
           </div>
